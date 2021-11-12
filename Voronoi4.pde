@@ -178,6 +178,7 @@ class Voronoi4{
       }else{
         println(arc.left + " <-  arc: " + arc + " : " + arc.baseArc + " focus: " + arc.baseArc.focus + " -> " + arc.right);
       }
+    }
     ArrayList<CircleEvent> events = getAllCircleEventsSorted();
     for(int i=0;i<events.size() && i<5;i++){
       println("EVENT: " + i +" : " + events.get(i).getCloseY());
