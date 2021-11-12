@@ -24,7 +24,6 @@ class Voronoi4{
   
   void init(){
     beachLine = new ArrayList<Arc>();
-    sweepLine=0;
     sweepLine=topLeft.y-10;
     nextPoint = 0;
     vertices= new ArrayList<PointD>();
@@ -540,6 +539,9 @@ class Arc{
     PointD intersect = left.rightLine.ray.intersect(rightLine.ray);
     
     if(intersect==null){
+      if(futureEvent!=null){
+        return;
+      }
       futureEvent = null;
       return;
     }
