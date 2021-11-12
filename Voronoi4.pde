@@ -25,6 +25,7 @@ class Voronoi4{
   void init(){
     beachLine = new ArrayList<Arc>();
     sweepLine=0;
+    sweepLine=topLeft.y-10;
     nextPoint = 0;
     vertices= new ArrayList<PointD>();
     verticesMap = new HashMap<PointD, ArrayList<PointD>>();
@@ -178,6 +179,9 @@ class Voronoi4{
       }else{
         println(arc.left + " <-  arc: " + arc + " : " + arc.baseArc + " focus: " + arc.baseArc.focus + " -> " + arc.right);
       }
+    ArrayList<CircleEvent> events = getAllCircleEventsSorted();
+    for(int i=0;i<events.size() && i<5;i++){
+      println("EVENT: " + i +" : " + events.get(i).getCloseY());
     }
   }
   
@@ -198,6 +202,24 @@ class Voronoi4{
       return null;
     }
     return points.get(nextPoint);
+  }
+  
+  ArrayList<CircleEvent> getAllCircleEventsSorted(){
+    return sortCircleEventsVertically(getAllCircleEvents());
+    
+  }
+  
+  ArrayList<CircleEvent> getAllCircleEvents(){
+    ArrayList<CircleEvent> eventList = new ArrayList<CircleEvent>();
+    
+    for(int i=0;i<beachLine.size();i++){
+      Arc arc = beachLine.get(i);
+      CircleEvent circleEvent = arc.getFutureClose();
+      if(circleEvent!=null){
+        eventList.add(circleEvent);
+      }
+    }
+    return eventList;
   }
   
   CircleEvent getNextCircleEvent(){
@@ -235,21 +257,36 @@ class Voronoi4{
           arc.left.right = arc;
           
           ArcLine leftLine = new ArcLine(new PointD((arc.left.baseArc.focus.x + arc.baseArc.focus.x)/2, -Double.MAX_VALUE), arc.left, arc);
-          arc.left.rightLine = leftLine;
+          arc.left.changeRightLine(leftLine);
         }
         if(arc.right!=null){
           arc.right.left = arc;
           
           ArcLine rightLine = new ArcLine(new PointD((arc.baseArc.focus.x + arc.right.baseArc.focus.x)/2, -Double.MAX_VALUE), arc, arc.right);
-          arc.rightLine = rightLine;
+          arc.changeRightLine(rightLine);
         }
         beachLine.add(link.index, arc);
       }else{
+        boolean closeSpawnRight = false, closeSpawnLeft = false;
+        double aboveLeft, aboveRight;
+        aboveLeft = link.above.leftBoundaryX();
+        aboveRight = link.above.rightBoundaryX();
         
+        if(!(aboveLeft+0.1<point.x )){// *1.0000000001d
+          closeSpawnLeft = true;
+        }
+        if(!(point.x<aboveRight-0.1)){// /1.0000000001d
+          closeSpawnRight = true;
+        }
+        if(closeSpawnLeft || closeSpawnRight){
+          
+          println("close as fuck");
+          println(link.above.leftBoundaryX() + " , " + point.x  + " , " + link.above.rightBoundaryX());
+        }
         Arc rightAboveArc = new Arc(link.above);
         rightAboveArc.right = link.above.right;
         rightAboveArc.left = arc;
-        rightAboveArc.rightLine = link.above.rightLine;
+        rightAboveArc.changeRightLine(link.above.rightLine);
         
         if(rightAboveArc.right!=null){
           rightAboveArc.right.left = rightAboveArc;
@@ -267,10 +304,31 @@ class Voronoi4{
         PointD contactPoint = new PointD(arc.baseArc.focus.x, contactPointY);
         
         ArcLine arcLineLeft = new ArcLine(contactPoint, link.above, arc);
-        link.above.rightLine = arcLineLeft;
+        link.above.changeRightLine(arcLineLeft);
         
         ArcLine arcLineRight = new ArcLine(contactPoint, arc, rightAboveArc);
-        arc.rightLine = arcLineRight;
+        arc.changeRightLine(arcLineRight);
+        
+        arc.updateCircleEvent();
+        rightAboveArc.updateCircleEvent();
+        link.above.updateCircleEvent();
+        
+        
+        if(closeSpawnLeft){
+          println("closing left");
+          PointD approxVertex = new PointD(aboveLeft, arc.left.baseArc.parabola.function(aboveLeft));
+          
+          CircleEvent approxEvent = new CircleEvent(arc.left, approxVertex);
+          closeArc(approxEvent);
+        }
+        
+        if(closeSpawnRight){
+          println("closing right");
+          PointD approxVertex = new PointD(aboveRight, arc.right.baseArc.parabola.function(aboveRight));
+          
+          CircleEvent approxEvent = new CircleEvent(arc.right, approxVertex);
+          closeArc(approxEvent);
+        }
         
       }
     }
@@ -296,7 +354,8 @@ class Voronoi4{
     
     
     ArcLine arcLine = new ArcLine(vertex, event.closingArc.left, event.closingArc.right);
-    event.closingArc.left.rightLine = arcLine;
+    //event.closingArc.left.rightLine = ;
+    event.closingArc.left.changeRightLine(arcLine);
   }
   
   ArcLink arcsAboveX(double x){
@@ -363,6 +422,19 @@ class Voronoi4{
     });
   }
   
+  ArrayList<CircleEvent> sortCircleEventsVertically(ArrayList<CircleEvent> events){
+    Collections.sort(events, new Comparator<CircleEvent>() {
+      public int compare(CircleEvent ev1, CircleEvent ev2) {
+          if(ev1.getCloseY()<ev2.getCloseY()){
+            return -1;
+          }else{
+            return 1;
+          }
+        }
+    });
+    return events;
+  }
+  
   PointD comparePoint;
   
   void orderVertices(){
@@ -426,6 +498,10 @@ class Arc{
   
   Arc left, right;
   
+  CircleEvent futureEvent;
+  
+  boolean toUpdateFutureEvent = true;
+  
   Arc(PointD focus, double sweepLine){
     baseArc = new BaseArc(focus, sweepLine);
   }
@@ -434,16 +510,41 @@ class Arc{
     baseArc = originArc.baseArc;
   }
   
+  void changeRightLine(ArcLine rightLine_){
+    rightLine = rightLine_;
+    toUpdateFutureEvent = true;
+  }
+  
   CircleEvent getFutureClose(){
-    if(left==null || right==null){
-      return null;
+    if(toUpdateFutureEvent){
+      updateRightLineEvents();
+    }
+    return futureEvent;
+  }
+  
+  void updateRightLineEvents(){
+    if(toUpdateFutureEvent){
+      updateCircleEvent();
+      if(right!=null){
+        right.updateCircleEvent();
+      }
+      toUpdateFutureEvent=false;
+    }
+  }
+  
+  void updateCircleEvent(){
+    if(left==null || right==null || left.rightLine==null || rightLine ==null){
+      futureEvent = null;
+      return;
     }
     PointD intersect = left.rightLine.ray.intersect(rightLine.ray);
     
     if(intersect==null){
-      return null;
+      futureEvent = null;
+      return;
     }
-    return new CircleEvent(this, intersect);
+    
+    futureEvent = new CircleEvent(this, intersect);
   }
   
   PointD intersectRight(){
@@ -473,7 +574,7 @@ class Arc{
       return baseArc.focus.x;
     }
     if(left==null){
-      return Double.MIN_VALUE;
+      return -Double.MAX_VALUE;
     }
     if(left.baseArc.straightLine){
       return left.baseArc.focus.x;
