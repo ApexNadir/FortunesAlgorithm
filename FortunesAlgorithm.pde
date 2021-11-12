@@ -159,6 +159,7 @@ void draw(){
  
   
   if(mouseY!=pmouseY || mouseX!=pmouseX){
+  if(voronoi==null){return;}
     background(150);
     if(!pause){
       voronoi.runTo(mouseY);
