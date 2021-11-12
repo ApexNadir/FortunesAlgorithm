@@ -24,10 +24,17 @@ class Voronoi4{
   
   void init(){
     beachLine = new ArrayList<Arc>();
-    sweepLine=0;
+    sweepLine=topLeft.y-10;
     nextPoint = 0;
     vertices= new ArrayList<PointD>();
     verticesMap = new HashMap<PointD, ArrayList<PointD>>();
+    
+    double fakeX, fakeY;
+    fakeX = (topLeft.x + bottomRight.x)/2;
+    fakeY = topLeft.y - 2*(bottomRight.y - topLeft.y);
+    PointD fakePoint = new PointD(fakeX, fakeY);
+    addArc(fakePoint);
+    updateSweepLine(topLeft.y);
   }
   void addVertexToPoint(PointD point, PointD vertex){
     if(!verticesMap.containsKey(point)){
@@ -171,13 +178,79 @@ class Voronoi4{
     for(Arc arc: beachLine){
       stroke(255,255,0);
       if(arc.baseArc.parabola!=null){
-        println(arc.baseArc.parabola + " , " + arc.baseArc.parabola.a + " , " + arc.baseArc.parabola.h +  " , " + arc.baseArc.parabola.k);
+        //println(arc.baseArc.parabola + " , " + arc.baseArc.parabola.a + " , " + arc.baseArc.parabola.h +  " , " + arc.baseArc.parabola.k);
         arc.baseArc.parabola.render(arc.leftBoundaryX(), arc.rightBoundaryX(), 5);
-      println(arc.leftBoundaryX() + " | " + arc.left + " <-  arc: " + arc + " : " + arc.baseArc + " focus: " + arc.baseArc.focus + " -> " + arc.right + " | " + arc.rightBoundaryX());
+        //println(arc.leftBoundaryX() + " | " + arc.left + " <-  arc: " + arc + " : " + arc.baseArc + " focus: " + arc.baseArc.focus + " -> " + arc.right + " | " + arc.rightBoundaryX());
         //println(arc.parabola.function(arc.focus.x));
       }else{
-        println(arc.left + " <-  arc: " + arc + " : " + arc.baseArc + " focus: " + arc.baseArc.focus + " -> " + arc.right);
+        //println(arc.left + " <-  arc: " + arc + " : " + arc.baseArc + " focus: " + arc.baseArc.focus + " -> " + arc.right);
       }
+    }
+    
+    Arc arc = arcsAboveX(mouseX).above;
+    if(arc!=null){
+      if(arc.baseArc.parabola!=null){
+        stroke(0,255,0);
+        arc.baseArc.parabola.render(arc.leftBoundaryX(), arc.rightBoundaryX(), 5);
+      }
+      if(arc.left!=null && arc.left.baseArc.parabola!=null){
+        stroke(255,0,0);
+        arc.left.baseArc.parabola.render(arc.left.leftBoundaryX(), arc.left.rightBoundaryX(), 5);
+      }else{
+        println("NO LEFT");
+      }
+      if(arc.right!=null && arc.right.baseArc.parabola!=null){
+        stroke(0,0,255);
+        arc.right.baseArc.parabola.render(arc.right.leftBoundaryX(), arc.right.rightBoundaryX(), 5);
+      }else{
+        println("NO RIGHT");
+      }
+    }
+    
+    for(int i=0;i<beachLine.size();i++){
+      arc = beachLine.get(i);
+      
+        if(arc.rightBoundaryX()<arc.leftBoundaryX()){
+          stopAutoFlag = true;
+          println("what2: " + i);
+          println(arc.leftBoundaryX() + " , " + arc.rightBoundaryX());
+          println("arc closing: " + arc.getFutureClose());
+          println("ray intersect: " + arc.left.rightLine.ray.intersect(arc.rightLine.ray));
+          println("ray values: left origin:" + arc.left.rightLine.ray.origin + " direction: " + arc.left.rightLine.ray.direction + " right origin: " + arc.rightLine.ray.origin + " direction: " + arc.rightLine.ray.direction);
+          println("line intersect: " + arc.left.rightLine.ray.line.intersect(arc.rightLine.ray.line));
+          println("line values: left m: " + arc.left.rightLine.ray.line.m + " c: " + arc.left.rightLine.ray.line.c + "  right m: " + arc.rightLine.ray.line.m + " c: " + arc.rightLine.ray.line.c);
+          println("DEBUG RAY INTERSECT START " );
+          arc.left.rightLine.ray.debugIntersect(arc.rightLine.ray);
+          stroke(255,0,0);
+          arc.left.rightLine.ray.render();
+          stroke(0,0,255);
+          arc.rightLine.ray.render();
+          
+        }
+        
+      if(i>0){
+        if(arc.leftBoundaryX()<arc.left.rightBoundaryX()){
+          println("what");
+        }
+        if(arc.left!=beachLine.get(i-1)){
+          println("left mismatch");
+        }  
+      }
+      if(i<beachLine.size()-1){
+        if(arc.rightBoundaryX()>arc.right.leftBoundaryX()){
+          println("what");
+        }
+        if(arc.right!=beachLine.get(i+1)){
+          println("right mismatch");
+        }
+      }
+      
+      
+    }
+    
+    ArrayList<CircleEvent> events = getAllCircleEventsSorted();
+    for(int i=0;i<events.size() && i<5;i++){
+      println("EVENT: " + i +" : " + events.get(i).getCloseY());
     }
   }
   
@@ -198,6 +271,24 @@ class Voronoi4{
       return null;
     }
     return points.get(nextPoint);
+  }
+  
+  ArrayList<CircleEvent> getAllCircleEventsSorted(){
+    return sortCircleEventsVertically(getAllCircleEvents());
+    
+  }
+  
+  ArrayList<CircleEvent> getAllCircleEvents(){
+    ArrayList<CircleEvent> eventList = new ArrayList<CircleEvent>();
+    
+    for(int i=0;i<beachLine.size();i++){
+      Arc arc = beachLine.get(i);
+      CircleEvent circleEvent = arc.getFutureClose();
+      if(circleEvent!=null){
+        eventList.add(circleEvent);
+      }
+    }
+    return eventList;
   }
   
   CircleEvent getNextCircleEvent(){
@@ -229,6 +320,7 @@ class Voronoi4{
     }else{
       ArcLink link = arcsAboveX(point.x);
       if(link.above==null){
+        println("above null");
         arc.left = link.left;
         arc.right = link.right;
         if(arc.left!=null){
@@ -245,7 +337,18 @@ class Voronoi4{
         }
         beachLine.add(link.index, arc);
       }else{
-        
+        boolean closeSpawnRight = false, closeSpawnLeft = false;
+        if(!(link.above.leftBoundaryX()+0.1<point.x )){
+          closeSpawnLeft = true;
+        }
+        if(!(point.x<link.above.rightBoundaryX()-0.1)){
+          closeSpawnRight = true;
+        }
+        if(closeSpawnLeft || closeSpawnRight){
+          
+          println("close as fuck");
+          println(link.above.leftBoundaryX() + " , " + point.x  + " , " + link.above.rightBoundaryX());
+        }
         Arc rightAboveArc = new Arc(link.above);
         rightAboveArc.right = link.above.right;
         rightAboveArc.left = arc;
@@ -271,6 +374,17 @@ class Voronoi4{
         
         ArcLine arcLineRight = new ArcLine(contactPoint, arc, rightAboveArc);
         arc.rightLine = arcLineRight;
+        
+        if(closeSpawnLeft){
+          
+          double ang = arc.left.baseArc.focus.subP(arc.baseArc.focus).ang() + PI/2;
+          DirectionalLineD ray1 = new DirectionalLineD(contactPoint, ang, true);
+        }
+        if(closeSpawnRight){
+          
+          double ang = arc.baseArc.focus.subP(arc.right.baseArc.focus).ang() + PI/2;
+          DirectionalLineD ray2 = new DirectionalLineD(contactPoint, ang, true);
+        }
         
       }
     }
@@ -337,7 +451,6 @@ class Voronoi4{
         continue;
       }
       
-      
       link.index = cur;
       link.above = arc;
       return link;
@@ -361,6 +474,19 @@ class Voronoi4{
           }
         }
     });
+  }
+  
+  ArrayList<CircleEvent> sortCircleEventsVertically(ArrayList<CircleEvent> events){
+    Collections.sort(events, new Comparator<CircleEvent>() {
+      public int compare(CircleEvent ev1, CircleEvent ev2) {
+          if(ev1.getCloseY()<ev2.getCloseY()){
+            return -1;
+          }else{
+            return 1;
+          }
+        }
+    });
+    return events;
   }
   
   PointD comparePoint;
@@ -473,7 +599,7 @@ class Arc{
       return baseArc.focus.x;
     }
     if(left==null){
-      return Double.MIN_VALUE;
+      return -Double.MAX_VALUE;
     }
     if(left.baseArc.straightLine){
       return left.baseArc.focus.x;

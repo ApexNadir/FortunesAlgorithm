@@ -269,6 +269,20 @@ class DirectionalLineD{
     line = new LineD(p1, p2);
   }
   
+  DirectionalLineD(PointD p1, double direction_, boolean debug){
+    origin = p1.copyP();
+    direction = direction_;
+    PointD p2 = p1.addP(new PointD(direction));
+    println("p1: " + p1 + "  , p2: " + p2);
+    line = new LineD(p1, p2);
+  }
+  
+  void render(){
+    PointD p2 = new PointD(direction);
+    p2.multThis(width*height).addToThis(origin);
+    line((float)origin.x, (float)origin.y, (float)p2.x, (float)p2.y);
+  }
+  
   PointD intersect(DirectionalLineD line2){
     PointD intersect = line.intersect(line2.line);
     if(intersect!=null){
@@ -276,6 +290,27 @@ class DirectionalLineD{
       if(directionOffset<0.01){
         double line2DirectionOffset = Math.abs(line2.getDirectionOffset(intersect));
         if(line2DirectionOffset<0.01){
+          return intersect;
+        }
+      }
+    }
+    return null;
+  }
+  
+  PointD debugIntersect(DirectionalLineD line2){
+    PointD intersect = line.intersect(line2.line);
+    println("DEBUG RAY: line intersect: " + intersect);
+    if(intersect!=null){
+      println("DEBUG RAY: NOT NULL LINE CHECK PASSED");
+      double directionOffset = Math.abs(getDirectionOffset(intersect));
+      
+      println("DEBUG RAY: DIRECTION OFFSET LINE 1: " + directionOffset);
+      if(directionOffset<0.01){
+      println("DEBUG RAY: DIRECTION OFFSET LINE 1 PASSED");
+        double line2DirectionOffset = Math.abs(line2.getDirectionOffset(intersect));
+      println("DEBUG RAY: DIRECTION OFFSET LINE 2: " + line2DirectionOffset);
+        if(line2DirectionOffset<0.01){
+      println("DEBUG RAY: DIRECTION OFFSET LINE 2 PASSED");
           return intersect;
         }
       }
