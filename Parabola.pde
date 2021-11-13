@@ -125,7 +125,7 @@ class ParabolaD{
   void render(double start, double end, double resolution){
     start = Math.max(0,start);
     end = Math.min(width,end);
-    double lastVal=function(0);
+    double lastVal=function(start);
     double prevX=start;
     for(double x=start;x<end;x+=resolution){
       if(x>end){
