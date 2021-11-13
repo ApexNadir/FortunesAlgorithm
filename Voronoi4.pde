@@ -9,7 +9,10 @@ class Voronoi4{
   int nextPoint=0;
   
   ArrayList<PointD> vertices;
-  HashMap<PointD, ArrayList<PointD>> verticesMap;
+  
+  HashMap<PointD, ArrayList<PointD>> pointToVerticesMap;
+  
+  HashMap<PointD, ArrayList<PointD>> verticesToPointMap;
   
   
   Voronoi4(ArrayList<PointD> points_, PointD topLeft_, PointD bottomRight_){
@@ -27,14 +30,29 @@ class Voronoi4{
     sweepLine=topLeft.y-10;
     nextPoint = 0;
     vertices= new ArrayList<PointD>();
-    verticesMap = new HashMap<PointD, ArrayList<PointD>>();
+    pointToVerticesMap = new HashMap<PointD, ArrayList<PointD>>();
+    verticesToPointMap = new HashMap<PointD, ArrayList<PointD>>();
+    
+    double fakeX, fakeY;
+    fakeX = (topLeft.x + bottomRight.x)/2;
+    fakeY = topLeft.y - 2*(bottomRight.y - topLeft.y);
+    PointD fakePoint = new PointD(fakeX, fakeY);
+    addArc(fakePoint);
+    updateSweepLine(topLeft.y);
   }
   void addVertexToPoint(PointD point, PointD vertex){
-    if(!verticesMap.containsKey(point)){
-      verticesMap.put(point, new ArrayList<PointD>());
+    if(!pointToVerticesMap.containsKey(point)){
+      pointToVerticesMap.put(point, new ArrayList<PointD>());
     }
-    ArrayList<PointD> array = verticesMap.get(point);
+    ArrayList<PointD> array = pointToVerticesMap.get(point);
     array.add(vertex);
+    
+    
+    if(!pointToVerticesMap.containsKey(vertex)){
+      pointToVerticesMap.put(vertex, new ArrayList<PointD>());
+    }
+    ArrayList<PointD> arrayVert = pointToVerticesMap.get(vertex);
+    arrayVert.add(point);
   }
   
   double getNextEventY(){
@@ -114,7 +132,7 @@ class Voronoi4{
       stroke(255,0,255);
       ellipse((float)p.x, (float)p.y, 5, 5);
       
-      ArrayList<PointD> verticesForPoint = verticesMap.get(p);
+      ArrayList<PointD> verticesForPoint = pointToVerticesMap.get(p);
       stroke(0,0,255);
       if(verticesForPoint!=null){
         /*
@@ -142,7 +160,7 @@ class Voronoi4{
       ellipse((float)p.x, (float)p.y, 5, 5);
       
       stroke(0,0,255);
-      ArrayList<PointD> verticesForPoint = verticesMap.get(p);
+      ArrayList<PointD> verticesForPoint = pointToVerticesMap.get(p);
       if(verticesForPoint!=null){
         /*
         for(PointD vert: verticesForPoint){
@@ -440,7 +458,7 @@ class Voronoi4{
   void orderVertices(){
     for(PointD p: points){
       comparePoint = p;
-      ArrayList<PointD> vertices = verticesMap.get(p);
+      ArrayList<PointD> vertices = pointToVerticesMap.get(p);
       if(vertices!=null){
         Collections.sort(vertices, new Comparator<PointD>() {
           public int compare(PointD v1, PointD v2) {
