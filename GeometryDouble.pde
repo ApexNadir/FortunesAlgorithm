@@ -121,6 +121,10 @@ class PointD{
     return new Point((float)x, (float)y);
   }
   
+  void drawLineTo(PointD p2){
+    line((float)x, (float)y, (float)p2.x, (float)p2.y);
+  }
+  
 }
 
 LineD lineDFromGradient(PointD p, double gradient){
@@ -269,6 +273,20 @@ class DirectionalLineD{
     line = new LineD(p1, p2);
   }
   
+  DirectionalLineD(PointD p1, double direction_, boolean debug){
+    origin = p1.copyP();
+    direction = direction_;
+    PointD p2 = p1.addP(new PointD(direction));
+    println("p1: " + p1 + "  , p2: " + p2);
+    line = new LineD(p1, p2);
+  }
+  
+  void render(){
+    PointD p2 = new PointD(direction);
+    p2.multThis(width*height).addToThis(origin);
+    line((float)origin.x, (float)origin.y, (float)p2.x, (float)p2.y);
+  }
+  
   PointD intersect(DirectionalLineD line2){
     PointD intersect = line.intersect(line2.line);
     if(intersect!=null){
@@ -276,6 +294,27 @@ class DirectionalLineD{
       if(directionOffset<0.01){
         double line2DirectionOffset = Math.abs(line2.getDirectionOffset(intersect));
         if(line2DirectionOffset<0.01){
+          return intersect;
+        }
+      }
+    }
+    return null;
+  }
+  
+  PointD debugIntersect(DirectionalLineD line2){
+    PointD intersect = line.intersect(line2.line);
+    println("DEBUG RAY: line intersect: " + intersect);
+    if(intersect!=null){
+      println("DEBUG RAY: NOT NULL LINE CHECK PASSED");
+      double directionOffset = Math.abs(getDirectionOffset(intersect));
+      
+      println("DEBUG RAY: DIRECTION OFFSET LINE 1: " + directionOffset);
+      if(directionOffset<0.01){
+      println("DEBUG RAY: DIRECTION OFFSET LINE 1 PASSED");
+        double line2DirectionOffset = Math.abs(line2.getDirectionOffset(intersect));
+      println("DEBUG RAY: DIRECTION OFFSET LINE 2: " + line2DirectionOffset);
+        if(line2DirectionOffset<0.01){
+      println("DEBUG RAY: DIRECTION OFFSET LINE 2 PASSED");
           return intersect;
         }
       }
@@ -348,4 +387,116 @@ class CircleD{
     float fDiameter = (float)radius*2;
     ellipse(fCenter.x, fCenter.y, fDiameter, fDiameter);
   }
+}
+
+class ShapeD{
+  ArrayList<PointD> vertices;
+  
+  
+  ShapeD(){
+    vertices = new ArrayList<PointD>();
+  }
+  
+  ShapeD(ArrayList<PointD> newVertices){
+    this();
+    for(int i=0;i<newVertices.size();i++){
+      vertices.add(newVertices.get(i));
+    }
+  }
+  
+  ShapeD(PointD[] newVertices){
+    this();
+    for(int i=0;i<newVertices.length;i++){
+      vertices.add(newVertices[i]);
+    }
+  }
+  
+  
+  void addVertex(PointD newVert){
+    addVertex(newVert.x, newVert.y);
+  }
+  
+  void addVertex(double x, double y){
+    vertices.add(new PointD(x,y));
+  }
+  
+  void render(){
+    if(vertices.size()<2){
+      return;      
+    }
+    PointD p1 = vertices.get(vertices.size()-1);
+    for(int i=0;i<vertices.size();i++){
+      PointD p2=vertices.get(i);
+      p1.drawLineTo(p2);
+      p1=p2;
+    }
+    
+    //stroke(255,0,0);
+    //renderAlt();
+    //stroke(0);
+    
+  }
+}
+
+class EdgeD{
+  LineD line;
+  PointD p1, p2;
+  
+  PointD minP, maxP;
+  
+  
+  EdgeD(PointD p1_, PointD p2_){
+    p1 = p1_;
+    p2 = p2_;
+    line = new LineD(p1, p2);
+    
+    double minX, minY, maxX, maxY;
+    if(p1.x <= p2.x){
+      minX = p1.x;
+      maxX = p2.x;
+    }else{
+      minX = p2.x;
+      maxX = p1.x;
+    }
+    
+    if(p1.y <= p2.y){
+      minY = p1.y;
+      maxY = p2.y;
+    }else{
+      minY = p2.y;
+      maxY = p1.y;
+    }
+    
+    minP = new PointD(minX, minY);
+    maxP = new PointD(maxX, maxY);
+    
+  }
+  
+  PointD intersect(EdgeD edge2){
+    PointD intersect = line.intersect(edge2.line);
+    if(isPointWithinBounds(intersect)){
+      if(edge2.isPointWithinBounds(intersect)){
+        return intersect;
+      }else{
+        return null;
+      }
+    }else{
+      return null;
+    }
+  }
+  
+  PointD intersect(LineD line2){
+    PointD intersect = line.intersect(line2);
+    if(isPointWithinBounds(intersect)){
+      return intersect;
+    }else{
+      return null;
+    }
+  }
+  
+  boolean isPointWithinBounds(PointD point){
+    return point.x > minP.x && point.y > minP.y && point.x < maxP.x && point.y < maxP.y;
+  }
+  
+  
 }
