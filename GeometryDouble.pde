@@ -512,6 +512,17 @@ class ShapeD{
     return intersects;
   }
   
+  boolean pointInside(PointD p){
+    DirectionalLineD ray = new DirectionalLineD(p, 0);
+    int intersectCount = 0;
+    for(EdgeD edge: edges){
+      if(edge.intersect(ray)!=null){
+        intersectCount++;
+      }
+    }
+    return intersectCount%2==1;
+  }
+  
   void render(){
     if(vertices.size()<2){
       return;      
