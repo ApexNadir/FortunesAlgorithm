@@ -306,7 +306,7 @@ class DirectionalLineD{
   
   PointD intersect(DirectionalLineD line2){
     PointD intersect = line.intersect(line2.line);
-    intersectInDir(line2.intersectInDir(intersect));
+    return intersectInDir(line2.intersectInDir(intersect));
   }
   
   PointD debugIntersect(DirectionalLineD line2){
