@@ -287,18 +287,26 @@ class DirectionalLineD{
     line((float)origin.x, (float)origin.y, (float)p2.x, (float)p2.y);
   }
   
+  PointD intersectInDir(PointD intersect){
+    if(intersect==null){
+      return null;
+    }
+    double directionOffset = Math.abs(getDirectionOffset(intersect));
+    if(directionOffset<0.01){
+      return intersect;
+    }else{
+      return null;
+    }
+  }
+  
+  PointD intersect(LineD line2){
+    PointD intersect = line.intersect(line2);
+    return intersectInDir(intersect);
+  }
+  
   PointD intersect(DirectionalLineD line2){
     PointD intersect = line.intersect(line2.line);
-    if(intersect!=null){
-      double directionOffset = Math.abs(getDirectionOffset(intersect));
-      if(directionOffset<0.01){
-        double line2DirectionOffset = Math.abs(line2.getDirectionOffset(intersect));
-        if(line2DirectionOffset<0.01){
-          return intersect;
-        }
-      }
-    }
-    return null;
+    intersectInDir(line2.intersectInDir(intersect));
   }
   
   PointD debugIntersect(DirectionalLineD line2){
@@ -391,7 +399,7 @@ class CircleD{
 
 class ShapeD{
   ArrayList<PointD> vertices;
-  
+  ArrayList<EdgeD> edges;
   
   ShapeD(){
     vertices = new ArrayList<PointD>();
@@ -402,6 +410,7 @@ class ShapeD{
     for(int i=0;i<newVertices.size();i++){
       vertices.add(newVertices.get(i));
     }
+    generateEdges();
   }
   
   ShapeD(PointD[] newVertices){
@@ -409,6 +418,7 @@ class ShapeD{
     for(int i=0;i<newVertices.length;i++){
       vertices.add(newVertices[i]);
     }
+    generateEdges();
   }
   
   
@@ -417,7 +427,89 @@ class ShapeD{
   }
   
   void addVertex(double x, double y){
-    vertices.add(new PointD(x,y));
+    PointD newVert = new PointD(x,y);
+    vertices.add(newVert);
+    incorporateLastAddedVerticesAsNewEdges(newVert);
+  }
+  
+  void generateEdges(){
+    edges = new ArrayList<EdgeD>();
+    
+    if(vertices.size()<3){
+      for(int i=1;i<vertices.size();i++){
+        edges.add(new EdgeD(vertices.get(i-1), vertices.get(i)));
+      }
+      return;
+    }
+    
+    PointD vert1, vert2, firstVert;
+    firstVert = vertices.get(0);
+    vert1 = firstVert;
+    vert2 = null;
+    for(int i=1;i<vertices.size();i++){
+      vert2 = vertices.get(i);
+      edges.add(new EdgeD(vert1, vert2));
+      vert1 = vert2;
+    }
+    edges.add(new EdgeD(vert2, firstVert));
+  }
+  
+  void incorporateLastAddedVerticesAsNewEdges(PointD newVert){
+    int num_verts, num_edges;
+    num_verts = vertices.size();
+    num_edges = edges.size();
+    
+    if(num_verts >= 3){
+      int index= num_edges-2;
+      edges.remove(index);
+      edges.remove(index);
+      
+      edges.add(new EdgeD(vertices.get(vertices.size()-1), newVert));
+      edges.add(new EdgeD(newVert, vertices.get(0)));
+    }else if(num_verts == 2){
+      int index= num_edges-1;
+      edges.remove(index);
+      
+      edges.add(new EdgeD(vertices.get(vertices.size()-1), newVert));
+      edges.add(new EdgeD(newVert, vertices.get(0)));
+      
+    }else if(num_verts == 1){
+      
+      edges.add(new EdgeD(vertices.get(0), newVert));
+    }
+  }
+  
+  ArrayList<PointD> intersect(LineD line){
+    ArrayList<PointD> intersects = new ArrayList<PointD>();
+    for(EdgeD edge: edges){
+      PointD intersect = edge.intersect(line);
+      if(intersect!=null){
+        intersects.add(intersect);
+      }
+    }
+    return intersects;
+  }
+  
+  ArrayList<PointD> intersect(DirectionalLineD dLine){
+    ArrayList<PointD> intersects = new ArrayList<PointD>();
+    for(EdgeD edge: edges){
+      PointD intersect = edge.intersect(dLine);
+      if(intersect!=null){
+        intersects.add(intersect);
+      }
+    }
+    return intersects;
+  }
+  
+  ArrayList<PointD> intersect(EdgeD edge2){
+    ArrayList<PointD> intersects = new ArrayList<PointD>();
+    for(EdgeD edge: edges){
+      PointD intersect = edge.intersect(edge2);
+      if(intersect!=null){
+        intersects.add(intersect);
+      }
+    }
+    return intersects;
   }
   
   void render(){
@@ -480,6 +572,15 @@ class EdgeD{
       }else{
         return null;
       }
+    }else{
+      return null;
+    }
+  }
+  
+  PointD intersect(DirectionalLineD dLine2){
+    PointD intersect = dLine2.intersect(line);
+    if(isPointWithinBounds(intersect)){
+      return intersect;
     }else{
       return null;
     }
