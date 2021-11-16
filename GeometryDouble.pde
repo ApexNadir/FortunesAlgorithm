@@ -598,6 +598,46 @@ class EdgeD{
   boolean isPointWithinBounds(PointD point){
     return point.x > minP.x && point.y > minP.y && point.x < maxP.x && point.y < maxP.y;
   }
+}
+
+class RectD{
+  PointD topLeft, bottomRight;
+  RectD(PointD topLeft_, PointD bottomRight_){
+    topLeft = topLeft_;
+    bottomRight = bottomRight_;
+  }
+  double getWidth(){
+    return bottomRight.x-topLeft.x;
+  }
+  double getHeight(){
+    return bottomRight.y-topLeft.y;
+  }
+  PointD getSize(){
+    return bottomRight.subP(topLeft);
+  }
   
   
+  RectD getSubQuad(int x, int y){
+    PointD center = getCenter();
+    double xLeft, xRight, yTop, yBottom;
+    if(x==0){
+      xLeft = topLeft.x;
+      xRight =  center.x;
+    }else{
+      xLeft = center.x;
+      xRight =  bottomRight.x;
+    }
+    if(y==0){
+      yTop = topLeft.y;
+      yBottom =  center.y;
+    }else{
+      yTop = center.y;
+      yBottom =  bottomRight.y;
+    }
+    return new RectD(new PointD(xLeft, yTop), new PointD(xRight, yBottom));
+  }
+  
+  PointD getCenter(){
+    return new PointD((topLeft.x+bottomRight.x)/2, (topLeft.y+bottomRight.y)/2);
+  }
 }
