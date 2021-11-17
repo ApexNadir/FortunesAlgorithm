@@ -414,6 +414,7 @@ class ShapeD{
       vertices.add(newVertices.get(i));
     }
     generateEdges();
+    generateBox();
   }
   
   ShapeD(PointD[] newVertices){
@@ -422,6 +423,7 @@ class ShapeD{
       vertices.add(newVertices[i]);
     }
     generateEdges();
+    generateBox();
   }
   
   void generateBox(){
