@@ -554,6 +554,8 @@ class Arc{
       updateRightLineEvents();
     }
     if(rightLine!=null && rightLine.boundaryIntersects!=null && rightLine.boundaryIntersects.size()>0 && (futureEvent==null || rightLine.boundaryIntersects.get(0).getCloseY() < futureEvent.getCloseY())){
+      CircleEvent bev = rightLine.boundaryIntersects.get(0);
+      bev.closingArc = this; //have to do incase rightline moved to rightside of new arc on addArc below us
       return rightLine.boundaryIntersects.get(0);
     }
     return futureEvent;
