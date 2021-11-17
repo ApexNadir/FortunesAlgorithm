@@ -1,12 +1,18 @@
 ArrayList<PointD> pointSet;
 
 Voronoi4 voronoi;
-
+ShapeD boundary;
 
 void setup(){
   zoom = 1;
   translate = new Point(0,0);
   size(1000,1000);
+  
+  boundary = new ShapeD();
+  boundary.addVertex(0,0);
+  boundary.addVertex(width,0);
+  boundary.addVertex(width,height);
+  boundary.addVertex(0,height);
   
   if(true){return;}
   pointSet = new ArrayList<PointD>();
@@ -24,7 +30,8 @@ void setup(){
   */
   background(150);
   
-  voronoi = new Voronoi4(pointSet, new PointD(0,0), new PointD(width,height));
+  
+  voronoi = new Voronoi4(pointSet, boundary);
   if(true){
   return;}
 
@@ -44,6 +51,34 @@ void setup(){
 
 double y=0;
 void draw(){
+  
+  /*
+  scale(0.5);
+  translate(width/2, height/2);
+  stroke(0);
+  background(150);
+  boundary.render();
+  stroke(255,0,0);
+  boundary.renderEdges();
+  stroke(0);
+  DirectionalLineD mLine = new DirectionalLineD(new PointD(width/4, height/2), new PointD(mouseX, mouseY));
+  mLine.render();
+  
+  ArrayList<PointD> intersects = boundary.intersect(mLine);
+  for(PointD p: intersects){
+    ellipse((float)p.x,(float)p.y,20,20);
+  }
+  
+  EdgeD edge = new EdgeD(new PointD(100,100), new PointD(200,100));
+  edge.render();
+  PointD inter2 = edge.intersect(mLine);
+  if(inter2!=null){
+    
+    ellipse((float)inter2.x,(float)inter2.y,20,20);
+  }
+  
+  */
+  
   
   /*
   what2: 27
@@ -203,6 +238,7 @@ void draw(){
   }
   */
  
+ 
   if(voronoi==null){return;}
   if(mouseY!=pmouseY || mouseX!=pmouseX || changed){
     changed = false;
@@ -332,7 +368,7 @@ void keyPressed(){
     }
     background(150);
     
-    voronoi = new Voronoi4(pointSet, new PointD(0,0), new PointD(width,height));
+    voronoi = new Voronoi4(pointSet, boundary);
     voronoi.init();
     int start = millis();
     voronoi.run();
@@ -346,12 +382,12 @@ void keyPressed(){
     
     pointSet = new ArrayList<PointD>();
     
-    for(int i=0;i<1000;i++){
+    for(int i=0;i<10;i++){
       pointSet.add(new PointD(Math.random()*width, Math.random()*height));
     }
     background(150);
     
-    voronoi = new Voronoi4(pointSet, new PointD(0,0), new PointD(width,height));
+    voronoi = new Voronoi4(pointSet, boundary);
     voronoi.init();
     int start = millis();
     voronoi.run();
@@ -371,7 +407,7 @@ void keyPressed(){
     }
     background(150);
     
-    voronoi = new Voronoi4(pointSet, new PointD(0,0), new PointD(width,height));
+    voronoi = new Voronoi4(pointSet, boundary);
     voronoi.init();
     int start = millis();
     voronoi.run();
@@ -401,7 +437,7 @@ void keyPressed(){
       */
       
       background(150);
-      voronoi = new Voronoi4(pointSet, new PointD(0,0), new PointD(width,height));
+      voronoi = new Voronoi4(pointSet, boundary);
       voronoi.init();
       
       int start = millis();
@@ -427,7 +463,7 @@ void keyPressed(){
   
       background(150);
       
-      voronoi = new Voronoi4(pointSet, new PointD(0,0), new PointD(width,height));
+      voronoi = new Voronoi4(pointSet, boundary);
       voronoi.init();
       int start = millis();
       voronoi.runTo((float)height*3f/4);

@@ -403,6 +403,7 @@ class ShapeD{
   
   ShapeD(){
     vertices = new ArrayList<PointD>();
+    edges = new ArrayList<EdgeD>();
   }
   
   ShapeD(ArrayList<PointD> newVertices){
@@ -459,23 +460,18 @@ class ShapeD{
     num_verts = vertices.size();
     num_edges = edges.size();
     
-    if(num_verts >= 3){
-      int index= num_edges-2;
-      edges.remove(index);
-      edges.remove(index);
-      
-      edges.add(new EdgeD(vertices.get(vertices.size()-1), newVert));
-      edges.add(new EdgeD(newVert, vertices.get(0)));
-    }else if(num_verts == 2){
+    if(num_verts > 3){
       int index= num_edges-1;
-      edges.remove(index);
+      edges.remove(index); //remove previous looping edge
       
-      edges.add(new EdgeD(vertices.get(vertices.size()-1), newVert));
-      edges.add(new EdgeD(newVert, vertices.get(0)));
+      edges.add(new EdgeD(vertices.get(num_verts-2), newVert)); //add new edge to vert
+      edges.add(new EdgeD(newVert, vertices.get(0))); //add new looping edge
+    }else if(num_verts == 3){
+      edges.add(new EdgeD(vertices.get(num_verts-2), newVert));//add new edge to vert
+      edges.add(new EdgeD(newVert, vertices.get(0))); //add looping edge
+    }else if(num_verts == 2){
+      edges.add(new EdgeD(vertices.get(0), newVert)); //add first edge
       
-    }else if(num_verts == 1){
-      
-      edges.add(new EdgeD(vertices.get(0), newVert));
     }
   }
   
@@ -539,6 +535,14 @@ class ShapeD{
     //stroke(0);
     
   }
+  void renderEdges(){
+    if(edges.size()==0){
+      return;      
+    }
+    for(EdgeD edge: edges){
+      edge.render();
+    }
+  }
 }
 
 class EdgeD{
@@ -577,6 +581,9 @@ class EdgeD{
   
   PointD intersect(EdgeD edge2){
     PointD intersect = line.intersect(edge2.line);
+    if(intersect == null){
+      return null;
+    }
     if(isPointWithinBounds(intersect)){
       if(edge2.isPointWithinBounds(intersect)){
         return intersect;
@@ -590,6 +597,9 @@ class EdgeD{
   
   PointD intersect(DirectionalLineD dLine2){
     PointD intersect = dLine2.intersect(line);
+    if(intersect == null){
+      return null;
+    }
     if(isPointWithinBounds(intersect)){
       return intersect;
     }else{
@@ -599,6 +609,10 @@ class EdgeD{
   
   PointD intersect(LineD line2){
     PointD intersect = line.intersect(line2);
+    if(intersect == null){
+      return null;
+    }
+      
     if(isPointWithinBounds(intersect)){
       return intersect;
     }else{
@@ -607,7 +621,19 @@ class EdgeD{
   }
   
   boolean isPointWithinBounds(PointD point){
-    return point.x > minP.x && point.y > minP.y && point.x < maxP.x && point.y < maxP.y;
+    boolean xMatter = true;
+    boolean yMatter = true;
+    if(minP.x==maxP.x){
+      xMatter=false;
+    }
+    if(minP.y==maxP.y){
+      yMatter=false;
+    }
+    return (!xMatter || (point.x >= minP.x && point.x <= maxP.x)) && (!yMatter || (point.y >= minP.y  && point.y <= maxP.y));
+  }
+  
+  void render(){
+    line((float)p1.x, (float)p1.y, (float)p2.x, (float)p2.y);
   }
 }
 
