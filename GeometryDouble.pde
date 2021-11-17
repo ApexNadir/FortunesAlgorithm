@@ -379,6 +379,8 @@ class ShapeD{
   ArrayList<PointD> vertices;
   ArrayList<EdgeD> edges;
   
+  RectD box;
+  
   ShapeD(){
     vertices = new ArrayList<PointD>();
     edges = new ArrayList<EdgeD>();
@@ -390,6 +392,7 @@ class ShapeD{
       vertices.add(newVertices.get(i));
     }
     generateEdges();
+    generateBox();
   }
   
   ShapeD(PointD[] newVertices){
@@ -398,6 +401,37 @@ class ShapeD{
       vertices.add(newVertices[i]);
     }
     generateEdges();
+    generateBox();
+  }
+  
+  void generateBox(){
+    if(vertices.size()>0){
+      PointD vert = vertices.get(0);
+      box = new RectD(vert.copyP(), vert.copyP());
+      
+      for(int i=1;i<vertices.size();i++){
+        vert = vertices.get(i);
+        box.topLeft.x = Math.min(box.topLeft.x, vert.x);
+        box.topLeft.y = Math.min(box.topLeft.y, vert.y);
+        box.bottomRight.x = Math.max(box.bottomRight.x, vert.x);
+        box.bottomRight.y = Math.max(box.bottomRight.y, vert.y);
+      }
+    }else{
+      box = null;
+    }
+  }
+  
+  void considerLastVertexForBox(){
+    if(box==null){
+      PointD vert = vertices.get(0);
+      box = new RectD(vert.copyP(), vert.copyP());
+    }else{
+      PointD vert = vertices.get(vertices.size()-1);
+      box.topLeft.x = Math.min(box.topLeft.x, vert.x);
+      box.topLeft.y = Math.min(box.topLeft.y, vert.y);
+      box.bottomRight.x = Math.max(box.bottomRight.x, vert.x);
+      box.bottomRight.y = Math.max(box.bottomRight.y, vert.y);
+    }
   }
   
   
@@ -409,6 +443,7 @@ class ShapeD{
     PointD newVert = new PointD(x,y);
     vertices.add(newVert);
     incorporateLastAddedVerticesAsNewEdges(newVert);
+    considerLastVertexForBox();
   }
   
   void generateEdges(){
