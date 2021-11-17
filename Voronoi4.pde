@@ -338,6 +338,8 @@ class Voronoi4{
       }
     }
     
+    wallIntersectEvent.closingArc.rightLine.insideBoundary = !wallIntersectEvent.closingArc.rightLine.insideBoundary;
+    
     ellipse((float)wallIntersectEvent.closePoint.x, (float)wallIntersectEvent.closePoint.y, 100,100);
     addVertexToPoint(wallIntersectEvent.closingArc.baseArc.focus, wallIntersectEvent.closePoint);
     addVertexToPoint(wallIntersectEvent.closingArc.right.baseArc.focus, wallIntersectEvent.closePoint);
@@ -522,13 +524,14 @@ class Voronoi4{
     }
     PointD vertex = event.closePoint;
     
-    vertices.add(vertex);
-    //EUREKA
+    if(event.closingArc.left.rightLine.insideBoundary && event.closingArc.rightLine.insideBoundary){
+      vertices.add(vertex);
+      //EUREKA
     
-    addVertexToPoint(event.closingArc.left.baseArc.focus, vertex);
-    addVertexToPoint(event.closingArc.baseArc.focus, vertex);
-    addVertexToPoint(event.closingArc.right.baseArc.focus, vertex);
-    
+      addVertexToPoint(event.closingArc.left.baseArc.focus, vertex);
+      addVertexToPoint(event.closingArc.baseArc.focus, vertex);
+      addVertexToPoint(event.closingArc.right.baseArc.focus, vertex);
+    }
     
     ArcLine arcLine = new ArcLine(vertex, event.closingArc.left, event.closingArc.right, boundary);
     //event.closingArc.left.rightLine = ;
@@ -835,7 +838,7 @@ class BaseArc{
 class ArcLine{
   DirectionalLineD ray;
   
-  boolean originInsideBoundary;
+  boolean insideBoundary;
   ShapeD boundary;
   ArrayList<CircleEvent> boundaryIntersects;
   
@@ -853,7 +856,7 @@ class ArcLine{
     }
     
     boundary = boundary_;
-    originInsideBoundary = boundary.pointInside(contactPoint);
+    insideBoundary = boundary.pointInside(contactPoint);
     
     boundaryIntersects = new ArrayList<CircleEvent>();
     ArrayList<PointD> intersects = boundary.intersect(ray);
