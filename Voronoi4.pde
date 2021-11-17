@@ -36,14 +36,14 @@ class Voronoi4{
     pointToVerticesMap = new HashMap<PointD, ArrayList<PointD>>();
     verticesToPointMap = new HashMap<PointD, ArrayList<PointD>>();
     
-    /*
+    println(boundary.box.topLeft + " " + boundary.box.bottomRight);
     double fakeX, fakeY;
-    fakeX = (topLeft.x + bottomRight.x)/2;
-    fakeY = topLeft.y - 2*(bottomRight.y - topLeft.y);
+    fakeX = (boundary.box.topLeft.x + boundary.box.bottomRight.x)/2;
+    fakeY = boundary.box.topLeft.y - 2*(boundary.box.bottomRight.y - boundary.box.topLeft.y);
     PointD fakePoint = new PointD(fakeX, fakeY);
     addArc(fakePoint);
-    updateSweepLine(topLeft.y);
-    */
+    updateSweepLine(boundary.box.topLeft.y);
+    
   }
   
   void addVertexToPoint(PointD point, PointD vertex){
