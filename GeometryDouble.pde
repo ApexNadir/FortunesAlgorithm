@@ -121,6 +121,10 @@ class PointD{
     return new Point((float)x, (float)y);
   }
   
+  void drawLineTo(PointD p2){
+    line((float)x, (float)y, (float)p2.x, (float)p2.y);
+  }
+  
 }
 
 LineD lineDFromGradient(PointD p, double gradient){
@@ -269,13 +273,56 @@ class DirectionalLineD{
     line = new LineD(p1, p2);
   }
   
+  DirectionalLineD(PointD p1, double direction_, boolean debug){
+    origin = p1.copyP();
+    direction = direction_;
+    PointD p2 = p1.addP(new PointD(direction));
+    println("p1: " + p1 + "  , p2: " + p2);
+    line = new LineD(p1, p2);
+  }
+  
+  void render(){
+    PointD p2 = new PointD(direction);
+    p2.multThis(width*height).addToThis(origin);
+    line((float)origin.x, (float)origin.y, (float)p2.x, (float)p2.y);
+  }
+  
+  PointD intersectInDir(PointD intersect){
+    if(intersect==null){
+      return null;
+    }
+    double directionOffset = Math.abs(getDirectionOffset(intersect));
+    if(directionOffset<0.01){
+      return intersect;
+    }else{
+      return null;
+    }
+  }
+  
+  PointD intersect(LineD line2){
+    PointD intersect = line.intersect(line2);
+    return intersectInDir(intersect);
+  }
+  
   PointD intersect(DirectionalLineD line2){
     PointD intersect = line.intersect(line2.line);
+    return intersectInDir(line2.intersectInDir(intersect));
+  }
+  
+  PointD debugIntersect(DirectionalLineD line2){
+    PointD intersect = line.intersect(line2.line);
+    println("DEBUG RAY: line intersect: " + intersect);
     if(intersect!=null){
+      println("DEBUG RAY: NOT NULL LINE CHECK PASSED");
       double directionOffset = Math.abs(getDirectionOffset(intersect));
+      
+      println("DEBUG RAY: DIRECTION OFFSET LINE 1: " + directionOffset);
       if(directionOffset<0.01){
+      println("DEBUG RAY: DIRECTION OFFSET LINE 1 PASSED");
         double line2DirectionOffset = Math.abs(line2.getDirectionOffset(intersect));
+      println("DEBUG RAY: DIRECTION OFFSET LINE 2: " + line2DirectionOffset);
         if(line2DirectionOffset<0.01){
+      println("DEBUG RAY: DIRECTION OFFSET LINE 2 PASSED");
           return intersect;
         }
       }
@@ -347,5 +394,287 @@ class CircleD{
     Point fCenter = center.asFloat();
     float fDiameter = (float)radius*2;
     ellipse(fCenter.x, fCenter.y, fDiameter, fDiameter);
+  }
+}
+
+class ShapeD{
+  ArrayList<PointD> vertices;
+  ArrayList<EdgeD> edges;
+  
+  ShapeD(){
+    vertices = new ArrayList<PointD>();
+    edges = new ArrayList<EdgeD>();
+  }
+  
+  ShapeD(ArrayList<PointD> newVertices){
+    this();
+    for(int i=0;i<newVertices.size();i++){
+      vertices.add(newVertices.get(i));
+    }
+    generateEdges();
+  }
+  
+  ShapeD(PointD[] newVertices){
+    this();
+    for(int i=0;i<newVertices.length;i++){
+      vertices.add(newVertices[i]);
+    }
+    generateEdges();
+  }
+  
+  
+  void addVertex(PointD newVert){
+    addVertex(newVert.x, newVert.y);
+  }
+  
+  void addVertex(double x, double y){
+    PointD newVert = new PointD(x,y);
+    vertices.add(newVert);
+    incorporateLastAddedVerticesAsNewEdges(newVert);
+  }
+  
+  void generateEdges(){
+    edges = new ArrayList<EdgeD>();
+    
+    if(vertices.size()<3){
+      for(int i=1;i<vertices.size();i++){
+        edges.add(new EdgeD(vertices.get(i-1), vertices.get(i)));
+      }
+      return;
+    }
+    
+    PointD vert1, vert2, firstVert;
+    firstVert = vertices.get(0);
+    vert1 = firstVert;
+    vert2 = null;
+    for(int i=1;i<vertices.size();i++){
+      vert2 = vertices.get(i);
+      edges.add(new EdgeD(vert1, vert2));
+      vert1 = vert2;
+    }
+    edges.add(new EdgeD(vert2, firstVert));
+  }
+  
+  void incorporateLastAddedVerticesAsNewEdges(PointD newVert){
+    int num_verts, num_edges;
+    num_verts = vertices.size();
+    num_edges = edges.size();
+    
+    if(num_verts > 3){
+      int index= num_edges-1;
+      edges.remove(index); //remove previous looping edge
+      
+      edges.add(new EdgeD(vertices.get(num_verts-2), newVert)); //add new edge to vert
+      edges.add(new EdgeD(newVert, vertices.get(0))); //add new looping edge
+    }else if(num_verts == 3){
+      edges.add(new EdgeD(vertices.get(num_verts-2), newVert));//add new edge to vert
+      edges.add(new EdgeD(newVert, vertices.get(0))); //add looping edge
+    }else if(num_verts == 2){
+      edges.add(new EdgeD(vertices.get(0), newVert)); //add first edge
+      
+    }
+  }
+  
+  ArrayList<PointD> intersect(LineD line){
+    ArrayList<PointD> intersects = new ArrayList<PointD>();
+    for(EdgeD edge: edges){
+      PointD intersect = edge.intersect(line);
+      if(intersect!=null){
+        intersects.add(intersect);
+      }
+    }
+    return intersects;
+  }
+  
+  ArrayList<PointD> intersect(DirectionalLineD dLine){
+    ArrayList<PointD> intersects = new ArrayList<PointD>();
+    for(EdgeD edge: edges){
+      PointD intersect = edge.intersect(dLine);
+      if(intersect!=null){
+        intersects.add(intersect);
+      }
+    }
+    return intersects;
+  }
+  
+  ArrayList<PointD> intersect(EdgeD edge2){
+    ArrayList<PointD> intersects = new ArrayList<PointD>();
+    for(EdgeD edge: edges){
+      PointD intersect = edge.intersect(edge2);
+      if(intersect!=null){
+        intersects.add(intersect);
+      }
+    }
+    return intersects;
+  }
+  
+  boolean pointInside(PointD p){
+    DirectionalLineD ray = new DirectionalLineD(p, 0);
+    int intersectCount = 0;
+    for(EdgeD edge: edges){
+      if(edge.intersect(ray)!=null){
+        intersectCount++;
+      }
+    }
+    return intersectCount%2==1;
+  }
+  
+  void render(){
+    if(vertices.size()<2){
+      return;      
+    }
+    PointD p1 = vertices.get(vertices.size()-1);
+    for(int i=0;i<vertices.size();i++){
+      PointD p2=vertices.get(i);
+      p1.drawLineTo(p2);
+      p1=p2;
+    }
+    
+    //stroke(255,0,0);
+    //renderAlt();
+    //stroke(0);
+    
+  }
+  void renderEdges(){
+    if(edges.size()==0){
+      return;      
+    }
+    for(EdgeD edge: edges){
+      edge.render();
+    }
+  }
+}
+
+class EdgeD{
+  LineD line;
+  PointD p1, p2;
+  
+  PointD minP, maxP;
+  
+  
+  EdgeD(PointD p1_, PointD p2_){
+    p1 = p1_;
+    p2 = p2_;
+    line = new LineD(p1, p2);
+    
+    double minX, minY, maxX, maxY;
+    if(p1.x <= p2.x){
+      minX = p1.x;
+      maxX = p2.x;
+    }else{
+      minX = p2.x;
+      maxX = p1.x;
+    }
+    
+    if(p1.y <= p2.y){
+      minY = p1.y;
+      maxY = p2.y;
+    }else{
+      minY = p2.y;
+      maxY = p1.y;
+    }
+    
+    minP = new PointD(minX, minY);
+    maxP = new PointD(maxX, maxY);
+    
+  }
+  
+  PointD intersect(EdgeD edge2){
+    PointD intersect = line.intersect(edge2.line);
+    if(intersect == null){
+      return null;
+    }
+    if(isPointWithinBounds(intersect)){
+      if(edge2.isPointWithinBounds(intersect)){
+        return intersect;
+      }else{
+        return null;
+      }
+    }else{
+      return null;
+    }
+  }
+  
+  PointD intersect(DirectionalLineD dLine2){
+    PointD intersect = dLine2.intersect(line);
+    if(intersect == null){
+      return null;
+    }
+    if(isPointWithinBounds(intersect)){
+      return intersect;
+    }else{
+      return null;
+    }
+  }
+  
+  PointD intersect(LineD line2){
+    PointD intersect = line.intersect(line2);
+    if(intersect == null){
+      return null;
+    }
+      
+    if(isPointWithinBounds(intersect)){
+      return intersect;
+    }else{
+      return null;
+    }
+  }
+  
+  boolean isPointWithinBounds(PointD point){
+    boolean xMatter = true;
+    boolean yMatter = true;
+    if(minP.x==maxP.x){
+      xMatter=false;
+    }
+    if(minP.y==maxP.y){
+      yMatter=false;
+    }
+    return (!xMatter || (point.x >= minP.x && point.x <= maxP.x)) && (!yMatter || (point.y >= minP.y  && point.y <= maxP.y));
+  }
+  
+  void render(){
+    line((float)p1.x, (float)p1.y, (float)p2.x, (float)p2.y);
+  }
+}
+
+class RectD{
+  PointD topLeft, bottomRight;
+  RectD(PointD topLeft_, PointD bottomRight_){
+    topLeft = topLeft_;
+    bottomRight = bottomRight_;
+  }
+  double getWidth(){
+    return bottomRight.x-topLeft.x;
+  }
+  double getHeight(){
+    return bottomRight.y-topLeft.y;
+  }
+  PointD getSize(){
+    return bottomRight.subP(topLeft);
+  }
+  
+  
+  RectD getSubQuad(int x, int y){
+    PointD center = getCenter();
+    double xLeft, xRight, yTop, yBottom;
+    if(x==0){
+      xLeft = topLeft.x;
+      xRight =  center.x;
+    }else{
+      xLeft = center.x;
+      xRight =  bottomRight.x;
+    }
+    if(y==0){
+      yTop = topLeft.y;
+      yBottom =  center.y;
+    }else{
+      yTop = center.y;
+      yBottom =  bottomRight.y;
+    }
+    return new RectD(new PointD(xLeft, yTop), new PointD(xRight, yBottom));
+  }
+  
+  PointD getCenter(){
+    return new PointD((topLeft.x+bottomRight.x)/2, (topLeft.y+bottomRight.y)/2);
   }
 }
