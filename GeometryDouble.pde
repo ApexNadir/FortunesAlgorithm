@@ -308,18 +308,6 @@ class DirectionalLineD{
     PointD intersect = line.intersect(line2.line);
     return intersectInDir(line2.intersectInDir(intersect));
   }
-    if(intersect!=null){
-      double directionOffset = Math.abs(getDirectionOffset(intersect));
-      if(directionOffset<0.01){
-        double line2DirectionOffset = Math.abs(line2.getDirectionOffset(intersect));
-        if(line2DirectionOffset<0.01){
-          return intersect;
-        }
-      }
-    }
-    return null;
-  }
-  
   double getDirectionOffset(PointD point){
     return getSmallestAngBetween(point.subP(origin).ang(), direction);
   }
