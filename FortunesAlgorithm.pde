@@ -2,11 +2,19 @@ ArrayList<PointD> pointSet;
 
 Voronoi4 voronoi;
 
+ShapeD boundary;
 
 void setup(){
   size(1000,1000);
   pointSet = new ArrayList<PointD>();
   
+  boundary = new ShapeD();
+  boundary.addVertex(0,0);
+  boundary.addVertex(width,0);
+  boundary.addVertex(width,height);
+  boundary.addVertex(0,height);
+  
+
   for(int i=0;i<500;i++){
     pointSet.add(new PointD(Math.random()*width, Math.random()*height));
   }
@@ -21,7 +29,7 @@ void setup(){
   
   background(150);
   
-  voronoi = new Voronoi4(pointSet, new PointD(0,0), new PointD(width,height));
+  voronoi = new Voronoi4(pointSet, boundary);
   voronoi.init();
   int start = millis();
   voronoi.run();
@@ -276,7 +284,7 @@ void keyPressed(){
     for(int i=0;i<pointSet.size();i++){
       pointSet.get(i).addToThis(new PointD(random(-1,1), random(-1,1)));
     }
-    voronoi = new Voronoi4(pointSet, new PointD(0,0), new PointD(width,height));
+    voronoi = new Voronoi4(pointSet, boundary);
   }
   if(key==' '){
     
