@@ -3,42 +3,41 @@ import java.util.*;
 class Voronoi4{
   ArrayList<Arc> beachLine;
   ArrayList<PointD> points;
-  PointD topLeft, bottomRight;
+  ShapeD boundary;
   double sweepLine;
   
   int nextPoint=0;
   
   ArrayList<PointD> vertices;
-  
   HashMap<PointD, ArrayList<PointD>> pointToVerticesMap;
-  
   HashMap<PointD, ArrayList<PointD>> verticesToPointMap;
   
   
-  Voronoi4(ArrayList<PointD> points_, PointD topLeft_, PointD bottomRight_){
+  Voronoi4(ArrayList<PointD> points_, ShapeD boundary_){
     points = new ArrayList<PointD>();
     for(PointD point: points_){
       points.add(point);
     }
     sortPointsVertically();
-    topLeft = topLeft_;
-    bottomRight = bottomRight_;
+    boundary = boundary_;
   }
   
   void init(){
     beachLine = new ArrayList<Arc>();
-    sweepLine=topLeft.y-10;
+    sweepLine=-Double.MAX_VALUE;
     nextPoint = 0;
     vertices= new ArrayList<PointD>();
     pointToVerticesMap = new HashMap<PointD, ArrayList<PointD>>();
     verticesToPointMap = new HashMap<PointD, ArrayList<PointD>>();
     
+    /*
     double fakeX, fakeY;
     fakeX = (topLeft.x + bottomRight.x)/2;
     fakeY = topLeft.y - 2*(bottomRight.y - topLeft.y);
     PointD fakePoint = new PointD(fakeX, fakeY);
     addArc(fakePoint);
     updateSweepLine(topLeft.y);
+    */
   }
   void addVertexToPoint(PointD point, PointD vertex){
     if(!pointToVerticesMap.containsKey(point)){
@@ -205,7 +204,22 @@ class Voronoi4{
   
   void executeCircleEvent(CircleEvent event){
     updateSweepLine(event.getCloseY());
-    closeArc(event);
+    if(event.wallIntersect){
+      wallIntersect(event);
+    }else{
+      closeArc(event);
+    }
+  }
+  
+  
+  void wallIntersect(CircleEvent wallIntersectEvent){
+      wallIntersectEvent.closingArc.rightLine.boundaryIntersects.remove(0);
+    
+    wallIntersectEvent.closingArc.rightLine.insideBoundary = !wallIntersectEvent.closingArc.rightLine.insideBoundary;
+    
+    ellipse((float)wallIntersectEvent.closePoint.x, (float)wallIntersectEvent.closePoint.y, 100,100);
+    addVertexToPoint(wallIntersectEvent.closingArc.baseArc.focus, wallIntersectEvent.closePoint);
+    addVertexToPoint(wallIntersectEvent.closingArc.right.baseArc.focus, wallIntersectEvent.closePoint);
   }
   
   void executeNewPointEvent(PointD point){
@@ -274,13 +288,13 @@ class Voronoi4{
         if(arc.left!=null){
           arc.left.right = arc;
           
-          ArcLine leftLine = new ArcLine(new PointD((arc.left.baseArc.focus.x + arc.baseArc.focus.x)/2, -Double.MAX_VALUE), arc.left, arc);
+          ArcLine leftLine = new ArcLine(new PointD((arc.left.baseArc.focus.x + arc.baseArc.focus.x)/2, -Double.MAX_VALUE), arc.left, arc, boundary);
           arc.left.changeRightLine(leftLine);
         }
         if(arc.right!=null){
           arc.right.left = arc;
           
-          ArcLine rightLine = new ArcLine(new PointD((arc.baseArc.focus.x + arc.right.baseArc.focus.x)/2, -Double.MAX_VALUE), arc, arc.right);
+          ArcLine rightLine = new ArcLine(new PointD((arc.baseArc.focus.x + arc.right.baseArc.focus.x)/2, -Double.MAX_VALUE), arc, arc.right, boundary);
           arc.changeRightLine(rightLine);
         }
         beachLine.add(link.index, arc);
@@ -321,10 +335,10 @@ class Voronoi4{
         double contactPointY = link.above.baseArc.parabola.function(arc.baseArc.focus.x);
         PointD contactPoint = new PointD(arc.baseArc.focus.x, contactPointY);
         
-        ArcLine arcLineLeft = new ArcLine(contactPoint, link.above, arc);
+        ArcLine arcLineLeft = new ArcLine(contactPoint, link.above, arc, boundary);
         link.above.changeRightLine(arcLineLeft);
         
-        ArcLine arcLineRight = new ArcLine(contactPoint, arc, rightAboveArc);
+        ArcLine arcLineRight = new ArcLine(contactPoint, arc, rightAboveArc, boundary);
         arc.changeRightLine(arcLineRight);
         
         arc.updateCircleEvent();
@@ -363,15 +377,16 @@ class Voronoi4{
     }
     PointD vertex = event.closePoint;
     
-    vertices.add(vertex);
-    //EUREKA
+    if(event.closingArc.left.rightLine.insideBoundary && event.closingArc.rightLine.insideBoundary){
+      vertices.add(vertex);
+      //EUREKA
     
-    addVertexToPoint(event.closingArc.left.baseArc.focus, vertex);
-    addVertexToPoint(event.closingArc.baseArc.focus, vertex);
-    addVertexToPoint(event.closingArc.right.baseArc.focus, vertex);
+      addVertexToPoint(event.closingArc.left.baseArc.focus, vertex);
+      addVertexToPoint(event.closingArc.baseArc.focus, vertex);
+      addVertexToPoint(event.closingArc.right.baseArc.focus, vertex);
+    }
     
-    
-    ArcLine arcLine = new ArcLine(vertex, event.closingArc.left, event.closingArc.right);
+    ArcLine arcLine = new ArcLine(vertex, event.closingArc.left, event.closingArc.right, boundary);
     //event.closingArc.left.rightLine = ;
     event.closingArc.left.changeRightLine(arcLine);
   }
@@ -498,6 +513,7 @@ class CircleEvent{
   Arc closingArc;
   PointD closePoint;
   double closeY;
+  boolean wallIntersect;
   
   CircleEvent(Arc closingArc_, PointD closePoint_){
     closingArc = closingArc_;
@@ -536,6 +552,9 @@ class Arc{
   CircleEvent getFutureClose(){
     if(toUpdateFutureEvent){
       updateRightLineEvents();
+    }
+    if(rightLine!=null && rightLine.boundaryIntersects!=null && rightLine.boundaryIntersects.size()>0 && (futureEvent==null || rightLine.boundaryIntersects.get(0).getCloseY() < futureEvent.getCloseY())){
+      return rightLine.boundaryIntersects.get(0);
     }
     return futureEvent;
   }
@@ -644,13 +663,56 @@ class BaseArc{
 
 class ArcLine{
   DirectionalLineD ray;
-  ArcLine(PointD contactPoint, Arc leftArc, Arc rightArc){
-    double ang = rightArc.baseArc.focus.subP(leftArc.baseArc.focus).ang() + PI/2;
+  
+  boolean insideBoundary;
+  ShapeD boundary;
+  ArrayList<CircleEvent> boundaryIntersects;
+  
+  Arc leftArc, rightArc;
+  
+  ArcLine(PointD contactPoint, Arc leftArc_, Arc rightArc_, ShapeD boundary_){
+    leftArc = leftArc_;
+    rightArc = rightArc_;
     if(leftArc.baseArc.focus.y == rightArc.baseArc.focus.y){
       PointD verticalBelowPoint = new PointD(contactPoint.x, Double.MAX_VALUE);
       ray = new DirectionalLineD(contactPoint, verticalBelowPoint);
     }else{
+      double ang = rightArc.baseArc.focus.subP(leftArc.baseArc.focus).ang() + PI/2;
       ray = new DirectionalLineD(contactPoint, ang);
     }
+    
+    boundary = boundary_;
+    insideBoundary = boundary.pointInside(contactPoint);
+    
+    boundaryIntersects = new ArrayList<CircleEvent>();
+    ArrayList<PointD> intersects = boundary.intersect(ray);
+    
+    
+    for(PointD intersect: intersects){
+      CircleEvent boundaryIntersect = new CircleEvent(leftArc, intersect);
+      boundaryIntersect.wallIntersect = true;
+      boundaryIntersects.add(boundaryIntersect);
+    }
+    
+    sortCircleEventsVertically(boundaryIntersects);
   }
+  
+  ArrayList<CircleEvent> sortCircleEventsVertically(ArrayList<CircleEvent> events){
+    Collections.sort(events, new Comparator<CircleEvent>() {
+      public int compare(CircleEvent ev1, CircleEvent ev2) {
+          if(ev1.getCloseY()<ev2.getCloseY()){
+            return -1;
+          }else{
+            return 1;
+          }
+        }
+    });
+    return events;
+  }
+  
+  
+  
 }
+  void drawLine(PointD p1, PointD p2){
+    line((float)p1.x, (float)p1.y, (float)p2.x, (float)p2.y);
+  }

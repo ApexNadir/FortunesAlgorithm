@@ -287,7 +287,7 @@ void keyPressed(){
     }
     background(150);
     
-    voronoi = new Voronoi4(pointSet, new PointD(0,0), new PointD(width,height));
+    voronoi = new Voronoi4(pointSet, boundary);
     voronoi.init();
     int start = millis();
     voronoi.run();
